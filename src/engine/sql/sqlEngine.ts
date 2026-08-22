@@ -179,6 +179,7 @@ export class SqlEngine {
         executionTimeMs,
       };
     } catch (err: any) {
+      console.error('SQL execution error', { sql: trimmed, error: err });
       return {
         columns: [],
         values: [],
