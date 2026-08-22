@@ -208,7 +208,12 @@ export class SqlEngine {
         executionTimeMs,
       };
     } catch (err: any) {
-      console.error('SQL execution error', { sql: trimmed, error: err });
+      try {
+        if (import.meta.env.DEV) console.error('SQL execution error', { sql: trimmed, error: err });
+      } catch (_) {
+        // in case import.meta is not available in some environments, fallback to logging
+        // but keep it silent in production builds
+      }
       return {
         columns: [],
         values: [],

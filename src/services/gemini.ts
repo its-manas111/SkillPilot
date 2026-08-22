@@ -1,5 +1,7 @@
 import { aiModel, firebaseConfig } from './firebase';
 
+const isDev = import.meta.env.DEV;
+
 /**
  * Gemini AI Service Layer — Powered by Firebase AI / Google Gen AI.
  * Uses Firebase Configured SDK and API key for AI hints, explanations, and remediation.
@@ -42,7 +44,7 @@ export class GeminiService {
         } catch (err) {
           bodyText = await response.text().catch(() => '<unreadable body>');
         }
-        console.error('Generative API request failed for hint', { url, status: response.status, statusText: response.statusText, body: bodyText });
+        if (isDev) console.error('Generative API request failed for hint', { url, status: response.status, statusText: response.statusText, body: bodyText });
         throw new Error(`Generative API error ${response.status}`);
       }
 
@@ -101,7 +103,7 @@ export class GeminiService {
         } catch (err) {
           bodyText = await response.text().catch(() => '<unreadable body>');
         }
-        console.error('Generative API request failed for explanation', { url, status: response.status, statusText: response.statusText, body: bodyText });
+        if (isDev) console.error('Generative API request failed for explanation', { url, status: response.status, statusText: response.statusText, body: bodyText });
         throw new Error(`Generative API error ${response.status}`);
       }
 
