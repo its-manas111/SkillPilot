@@ -1,5 +1,6 @@
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import path from 'path';
+import { logger } from '../../utils/logger';
 import { SqlQueryResult } from '../evaluator/types';
 
 const FORBIDDEN_OPERATIONS = [
@@ -44,7 +45,7 @@ export class SqlEngine {
         this.db = db;
         return db;
       } catch (err) {
-        console.error('Failed to initialize sql.js in WASM mode, falling back to mock evaluator engine', err);
+        logger.warn('Failed to initialize sql.js in WASM mode, falling back to mock evaluator engine', err);
         throw err;
       }
     })();
@@ -214,16 +215,11 @@ export class SqlEngine {
         executionTimeMs,
       };
     } catch (err: any) {
-      try {
-        if (import.meta.env.DEV) console.error('SQL execution error', { sql: trimmed, error: err });
-      } catch (_) {
-        // in case import.meta is not available in some environments, fallback to logging
-        // but keep it silent in production builds
-      }
+      logger.error('SQL execution error', { sql: trimmed, error: err });
       return {
         columns: [],
         values: [],
-        error: err.message || String(err),
+        error: err?.message || String(err),
       };
     }
   }

@@ -1,6 +1,5 @@
 import { aiModel, firebaseConfig } from './firebase';
-
-const isDev = import.meta.env.DEV;
+import { logger } from '../utils/logger';
 
 /**
  * Gemini AI Service Layer — Powered by Firebase AI / Google Gen AI.
@@ -17,7 +16,7 @@ export class GeminiService {
         const text = result.response.text();
         if (text) return text.trim();
       } catch (err) {
-        console.warn('Firebase AI SDK request failed, trying Direct API fallback:', err);
+        logger.warn('Firebase AI SDK request failed, trying Direct API fallback:', err);
       }
     }
 
@@ -44,7 +43,7 @@ export class GeminiService {
         } catch (err) {
           bodyText = await response.text().catch(() => '<unreadable body>');
         }
-        if (isDev) console.error('Generative API request failed for hint', { url, status: response.status, statusText: response.statusText, body: bodyText });
+        logger.error('Generative API request failed for hint', { url, status: response.status, statusText: response.statusText, body: bodyText });
         throw new Error(`Generative API error ${response.status}`);
       }
 
@@ -52,7 +51,7 @@ export class GeminiService {
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       return text ? text.trim() : "AI hint: Pay close attention to table join keys, filter conditions, and syntax clauses.";
     } catch (e) {
-      console.warn('Firebase AI API request failed, using fallback hint:', e);
+      logger.warn('Firebase AI API request failed, using fallback hint:', e);
       return "AI hint: Check your JOIN predicates and WHERE filters to ensure matching keys.";
     }
   }
@@ -76,7 +75,7 @@ export class GeminiService {
         const text = result.response.text();
         if (text) return text.trim();
       } catch (err) {
-        console.warn('Firebase AI SDK request failed, trying Direct API fallback:', err);
+        logger.warn('Firebase AI SDK request failed, trying Direct API fallback:', err);
       }
     }
 
@@ -103,7 +102,7 @@ export class GeminiService {
         } catch (err) {
           bodyText = await response.text().catch(() => '<unreadable body>');
         }
-        if (isDev) console.error('Generative API request failed for explanation', { url, status: response.status, statusText: response.statusText, body: bodyText });
+        logger.error('Generative API request failed for explanation', { url, status: response.status, statusText: response.statusText, body: bodyText });
         throw new Error(`Generative API error ${response.status}`);
       }
 
@@ -111,7 +110,7 @@ export class GeminiService {
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       return text ? text.trim() : evalFeedback;
     } catch (e) {
-      console.warn('Firebase AI API request failed, using deterministic feedback:', e);
+      logger.warn('Firebase AI API request failed, using deterministic feedback:', e);
       return `AI explanations are temporarily unavailable. ${evalFeedback}`;
     }
   }

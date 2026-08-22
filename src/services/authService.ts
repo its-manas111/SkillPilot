@@ -6,6 +6,7 @@ import {
   User
 } from 'firebase/auth';
 import { auth } from './firebase';
+import { logger } from '../utils/logger';
 
 export interface UserProfile {
   uid: string;
@@ -28,8 +29,8 @@ export class AuthService {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       return this.mapUser(result.user);
-    } catch (error: any) {
-      console.error('Google sign-in error:', error);
+    } catch (error: unknown) {
+      logger.error('Google sign-in error:', error);
       throw error;
     }
   }
@@ -40,8 +41,8 @@ export class AuthService {
   public async signOutUser(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error) {
-      console.error('Sign-out error:', error);
+    } catch (error: unknown) {
+      logger.error('Sign-out error:', error);
       throw error;
     }
   }

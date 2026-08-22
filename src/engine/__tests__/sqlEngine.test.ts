@@ -35,6 +35,6 @@ describe('SqlEngine edge cases', () => {
     const query = `SELECT * FROM non_existent_table;`;
     const res = await sqlEngine.executeQuery(query);
     expect(res.error).toBeTruthy();
-    expect(res.error.toLowerCase()).toMatch(/no such table|no such/i);
+    expect(String(res.error).toLowerCase()).toMatch(/no such table|no such/i);
   });
 });

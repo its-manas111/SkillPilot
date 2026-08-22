@@ -21,8 +21,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
       await authService.signInWithGoogle();
       onLoginSuccess();
     } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.message || 'Failed to sign in with Google. Please try again.');
+      // Use logger for developer diagnostics while surfacing a friendly message to the user
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { logger } = require('../utils/logger');
+      logger.error('Login error:', err);
+      setError(err?.message || 'Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
     }
