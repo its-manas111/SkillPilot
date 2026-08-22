@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAI, getGenerativeModel, GenerativeModel } from "firebase/ai";
+import { getAuth } from "firebase/auth";
 
 // Web app's Firebase configuration loaded securely from environment variables
 export const firebaseConfig = {
@@ -13,6 +14,9 @@ export const firebaseConfig = {
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
+
+// Initialize Firebase Auth
+export const auth = getAuth(app);
 
 // Initialize Firebase AI (Gemini 1.5 Flash)
 let aiModel: GenerativeModel | null = null;

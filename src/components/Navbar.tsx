@@ -1,19 +1,28 @@
-import React from 'react';
-import { Compass, LayoutDashboard, LineChart, Terminal, Bug, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Compass, LayoutDashboard, LineChart, Terminal, Bug, RotateCcw, LogOut, LogIn, User } from 'lucide-react';
+import { UserProfile } from '../services/authService';
 
 interface NavbarProps {
   activeTab: 'dashboard' | 'practice' | 'progress';
+  userProfile: UserProfile | null;
   onNavigate: (tab: 'dashboard' | 'practice' | 'progress') => void;
   onToggleDebug: () => void;
   onResetState: () => void;
+  onSignOut: () => void;
+  onOpenLogin: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
+  userProfile,
   onNavigate,
   onToggleDebug,
-  onResetState
+  onResetState,
+  onSignOut,
+  onOpenLogin
 }) => {
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
   return (
     <header className="bg-dark-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -33,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 bg-dark-950/80 p-1 rounded-xl border border-slate-800">
+        <nav className="hidden sm:flex items-center gap-1 bg-dark-950/80 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => onNavigate('dashboard')}
             className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
@@ -71,11 +80,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Action Controls */}
+        {/* Action Controls & User Profile Badge */}
         <div className="flex items-center gap-2">
           <button
             onClick={onToggleDebug}
-            className="px-3 py-1.5 text-xs text-amber-400 bg-amber-950/40 border border-amber-800/50 hover:bg-amber-900/40 rounded-lg flex items-center gap-1.5 transition-all font-mono"
+            className="hidden md:flex px-3 py-1.5 text-xs text-amber-400 bg-amber-950/40 border border-amber-800/50 hover:bg-amber-900/40 rounded-lg items-center gap-1.5 transition-all font-mono"
             title="Open Adaptive Engine Debug Drawer"
           >
             <Bug className="w-3.5 h-3.5" />
@@ -89,6 +98,54 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <RotateCcw className="w-4 h-4" />
           </button>
+
+          {/* User Profile Badge / Menu */}
+          <div className="relative">
+            {userProfile ? (
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-2 p-1.5 bg-dark-950 hover:bg-slate-800 rounded-xl border border-slate-800 transition-all text-xs font-medium text-slate-200"
+              >
+                {userProfile.photoURL ? (
+                  <img src={userProfile.photoURL} alt="Avatar" className="w-6 h-6 rounded-full border border-cyan-500/50" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-[11px] font-bold font-mono">
+                    {userProfile.displayName?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+                <span className="hidden md:inline max-w-[100px] truncate">{userProfile.displayName}</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenLogin}
+                className="px-3 py-1.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
+
+            {/* Profile Dropdown Menu */}
+            {isProfileMenuOpen && userProfile && (
+              <div className="absolute right-0 mt-2 w-56 bg-dark-900 border border-slate-800 rounded-2xl shadow-2xl p-3 space-y-2 z-50 text-xs">
+                <div className="p-2 bg-dark-950 rounded-xl border border-slate-800/80">
+                  <div className="font-semibold text-slate-100 truncate">{userProfile.displayName}</div>
+                  <div className="text-[10px] text-slate-500 truncate">{userProfile.email || 'Google Authenticated'}</div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    onSignOut();
+                  }}
+                  className="w-full p-2 text-left text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 rounded-xl flex items-center gap-2 transition-all font-medium"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

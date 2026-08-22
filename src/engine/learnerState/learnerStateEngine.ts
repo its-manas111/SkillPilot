@@ -2,7 +2,6 @@ import { SkillType } from '../knowledgeGraph/types';
 import { LearnerState, SkillProfile, MisconceptionRecord, AttemptRecord } from './types';
 import { EvaluationResult } from '../evaluator/types';
 
-const LOCAL_STORAGE_KEY = 'skillpilot_learner_state_v1';
 const EMA_ALPHA = 0.35; // Learning rate giving 35% weight to recent evidence
 
 const DEFAULT_SKILL_PROFILE: SkillProfile = {
@@ -15,18 +14,46 @@ const DEFAULT_SKILL_PROFILE: SkillProfile = {
 
 export class LearnerStateEngine {
   private state: LearnerState;
+  private currentUserId: string = 'default';
+  private userCache: Record<string, LearnerState> = {};
 
   constructor() {
     this.state = this.loadState();
   }
 
+  private getStorageKey(): string {
+    return `skillpilot_learner_state_${this.currentUserId}`;
+  }
+
   /**
-   * Load state from LocalStorage or initialize default state.
+   * Bind state engine to a specific authenticated user identity.
+   */
+  public setUser(uid: string): LearnerState {
+    if (this.state && this.currentUserId) {
+      this.userCache[this.currentUserId] = this.state;
+    }
+
+    this.currentUserId = uid || 'default';
+
+    if (this.userCache[this.currentUserId]) {
+      this.state = this.userCache[this.currentUserId];
+    } else {
+      this.state = this.loadState();
+      this.userCache[this.currentUserId] = this.state;
+    }
+
+    this.state.learnerId = this.currentUserId;
+    this.saveState();
+    return this.state;
+  }
+
+  /**
+   * Load state from LocalStorage for current user identity or initialize default state.
    */
   public loadState(): LearnerState {
     try {
       if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const stored = localStorage.getItem(this.getStorageKey());
         if (stored) {
           return JSON.parse(stored);
         }
@@ -38,12 +65,16 @@ export class LearnerStateEngine {
   }
 
   /**
-   * Save current state to LocalStorage.
+   * Save current user state to LocalStorage.
    */
   public saveState(): void {
+    if (this.state && this.currentUserId) {
+      this.userCache[this.currentUserId] = this.state;
+    }
+
     try {
       if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.state));
+        localStorage.setItem(this.getStorageKey(), JSON.stringify(this.state));
       }
     } catch (e) {
       console.warn('Failed to save learner state to localStorage:', e);
@@ -52,7 +83,7 @@ export class LearnerStateEngine {
 
   public createDefaultState(): LearnerState {
     return {
-      learnerId: 'learner_default',
+      learnerId: this.currentUserId,
       conceptMastery: {},
       skillMastery: {},
       globalSkillProfile: { ...DEFAULT_SKILL_PROFILE },
@@ -74,6 +105,9 @@ export class LearnerStateEngine {
 
   public resetState(): LearnerState {
     this.state = this.createDefaultState();
+    if (this.currentUserId) {
+      this.userCache[this.currentUserId] = this.state;
+    }
     this.saveState();
     return this.state;
   }

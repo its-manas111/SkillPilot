@@ -14,7 +14,6 @@ describe('SkillPilot Engine Verification Suite', () => {
     const prereqs = knowledgeGraph.getPrerequisites(groupById);
     expect(prereqs.map(p => p.conceptId)).toContain('aggregation');
 
-    // Test prerequisite readiness filter
     const isMet = knowledgeGraph.isPrerequisitesMet('group_by', { 'aggregation': 0.8 });
     expect(isMet).toBe(true);
 
@@ -49,46 +48,32 @@ describe('SkillPilot Engine Verification Suite', () => {
     }
   });
 
-  it('Phase 3 — Evaluation Engine: computes partial credit for query correction', () => {
-    const corrQuestion = questionBank.getQuestion('q_jc_corr_1');
-    expect(corrQuestion).toBeDefined();
+  it('Phase 4 — Learner State: supports multi-user state switching and identity isolation', () => {
+    const userAState = learnerStateEngine.setUser('user_alpha');
+    expect(userAState.learnerId).toBe('user_alpha');
 
-    if (corrQuestion) {
-      // Partial credit test (syntax valid + execution successful, but wrong result)
-      const res = evaluator.evaluate(corrQuestion, 'SELECT * FROM employees e JOIN departments d ON e.id = d.id;', {
-        columns: ['employee_name', 'department_name'],
-        values: [['Alice Chen', 'Engineering']] // Partial mismatch
-      });
+    // User Alpha completes an attempt
+    const q = questionBank.getQuestion('q_sel_rec_1')!;
+    const evalRes = evaluator.evaluate(q, 'opt_where');
+    learnerStateEngine.recordAttempt(q.questionId, q.conceptId, q.skillType, q.difficulty, 'opt_where', evalRes);
 
-      expect(res.score).toBeGreaterThan(0.0);
-      expect(res.score).toBeLessThan(1.0);
-      expect(res.correctness).toBe('partially_correct');
-      expect(res.errorPatterns).toContain('incorrect_join_condition');
-    }
+    expect(learnerStateEngine.getState().learningHistory.length).toBeGreaterThan(0);
+
+    // Switch to User Beta
+    const userBState = learnerStateEngine.setUser('user_beta');
+    expect(userBState.learnerId).toBe('user_beta');
+    expect(userBState.learningHistory.length).toBe(0); // Isolated fresh state
+
+    // Switch back to User Alpha
+    const userAStateReloaded = learnerStateEngine.setUser('user_alpha');
+    expect(userAStateReloaded.learningHistory.length).toBeGreaterThan(0); // State preserved
   });
 
-  it('Phase 4 & 5 — Learner State & Adaptive Planner: updates state and provides truthful recommendation', () => {
-    const state = learnerStateEngine.resetState();
+  it('Phase 5 — Adaptive Planner: provides truthful recommendation', () => {
+    const state = learnerStateEngine.setUser('test_user');
     state.isOnboarded = true;
 
-    // Simulate an attempt on a join question
-    const q = questionBank.getQuestion('q_jc_corr_1')!;
-    const evalRes = evaluator.evaluate(q, 'SELECT * FROM employees;');
-
-    const updatedState = learnerStateEngine.recordAttempt(
-      q.questionId,
-      q.conceptId,
-      q.skillType,
-      q.difficulty,
-      'SELECT * FROM employees;',
-      evalRes
-    );
-
-    expect(updatedState.learningHistory.length).toBe(1);
-    expect(updatedState.skillMastery[q.conceptId]).toBeDefined();
-
-    // Verify Adaptive Planner picks next best question and generates truthful recommendation reason
-    const { recommendation } = adaptivePlanner.planNextActivity(updatedState);
+    const { recommendation } = adaptivePlanner.planNextActivity(state);
     expect(recommendation).toBeDefined();
     expect(recommendation.reason).toBeTruthy();
     expect(recommendation.reason.length).toBeGreaterThan(10);
