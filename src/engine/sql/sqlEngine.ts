@@ -1,4 +1,5 @@
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
+import path from 'path';
 import { SqlQueryResult } from '../evaluator/types';
 
 const FORBIDDEN_OPERATIONS = [
@@ -29,8 +30,13 @@ export class SqlEngine {
     this.initPromise = (async () => {
       try {
         const SQL: SqlJsStatic = await initSqlJs({
-          // Fetch WASM from unpkg CDN for zero build setup issues in browser
-          locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+          // Use local wasm file when running in Node (tests, CI), otherwise use CDN in browser
+          locateFile: (file: string) => {
+            if (typeof window === 'undefined') {
+              return path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file);
+            }
+            return `https://sql.js.org/dist/${file}`;
+          },
         });
 
         const db = new SQL.Database();
