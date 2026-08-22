@@ -143,8 +143,37 @@ export class SqlEngine {
       }
     }
 
-    // Ensure query starts with SELECT or WITH
-    if (!/^(SELECT|WITH)\b/i.test(trimmed)) {
+    // Normalize query: strip leading semicolons and SQL comments so
+    // queries that start with comments still validate correctly.
+    let normalized = trimmed;
+    while (true) {
+      const prev = normalized;
+      // remove leading semicolons and whitespace
+      normalized = normalized.replace(/^[;\s]+/, '');
+
+      // remove leading SQL line comment -- ...\n
+      if (/^--/.test(normalized)) {
+        const idx = normalized.indexOf('\n');
+        normalized = idx >= 0 ? normalized.slice(idx + 1) : '';
+        normalized = normalized.trim();
+        if (normalized === prev) break;
+        continue;
+      }
+
+      // remove leading block comment /* ... */
+      if (/^\/\*/.test(normalized)) {
+        const end = normalized.indexOf('*/');
+        normalized = end >= 0 ? normalized.slice(end + 2) : '';
+        normalized = normalized.trim();
+        if (normalized === prev) break;
+        continue;
+      }
+
+      if (normalized === prev) break;
+    }
+
+    // Ensure query starts with SELECT or WITH after normalization
+    if (!/^(SELECT|WITH)\b/i.test(normalized)) {
       return {
         columns: [],
         values: [],
