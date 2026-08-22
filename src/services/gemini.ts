@@ -6,7 +6,7 @@ import { aiModel, firebaseConfig } from './firebase';
  */
 export class GeminiService {
   public async generateHint(prompt: string, starterCode: string): Promise<string> {
-    const hintPrompt = `You are an expert SQL tutor for SkillPilot. Provide a concise, 1-2 sentence hint for this SQL problem without giving away the complete solution directly:\n\nPrompt: ${prompt}\nStarter Code: ${starterCode}`;
+    const hintPrompt = `You are an expert SQL tutor for SkillPilot. Respond in a witty, sarcastic, and playful tone (light taunts are OK) while remaining helpful and respectful — no profanity, no personal attacks, and avoid toxic language. Provide a concise (1-2 sentence) hint that nudges the learner without revealing the full solution. Include the essential technical cue(s) the student needs to make progress.\n\nProblem: ${prompt}\nStarter Code: ${starterCode}`;
 
     // 1. Try Firebase AI SDK
     if (aiModel) {
@@ -22,20 +22,29 @@ export class GeminiService {
     // 2. Direct REST API request using Firebase Config API Key
     try {
       const apiKey = firebaseConfig.apiKey;
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: hintPrompt }]
-              }
-            ]
-          })
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: hintPrompt }]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        let bodyText = '';
+        try {
+          bodyText = JSON.stringify(await response.json());
+        } catch (err) {
+          bodyText = await response.text().catch(() => '<unreadable body>');
         }
-      );
+        console.error('Generative API request failed for hint', { url, status: response.status, statusText: response.statusText, body: bodyText });
+        throw new Error(`Generative API error ${response.status}`);
+      }
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -54,6 +63,10 @@ export class GeminiService {
   ): Promise<string> {
     const explanationPrompt = `You are an encouraging, technical SQL tutor for SkillPilot. Explain why the user's attempt had issues and provide a clear 2-sentence explanation of the underlying SQL concept.\n\nProblem Prompt: ${prompt}\nUser Submission: ${userAnswer}\nEvaluation Feedback: ${evalFeedback}\nDetected Misconceptions: ${errorPatterns.join(', ')}`;
 
+    // Update: make explanations witty and slightly sarcastic while keeping them instructive and respectful.
+    // Ask for short, actionable remediation steps, and optionally a one-line playful taunt.
+    const wittyExplanationPrompt = `You are a witty, sarcastic, and playful SQL tutor for SkillPilot — keep it fun but always respectful (no profanity or personal attacks). Briefly explain why the user's attempt failed and present the correct concept in 2-3 clear sentences. Then give 2 short, actionable steps the learner can take to fix their query and one concise example if helpful. You may include a light, good-natured taunt (one sentence) at the end to keep tone playful.\n\nProblem Prompt: ${prompt}\nUser Submission: ${userAnswer}\nEvaluation Feedback: ${evalFeedback}\nDetected Misconceptions: ${errorPatterns.join(', ')}`;
+
     // 1. Try Firebase AI SDK
     if (aiModel) {
       try {
@@ -68,20 +81,29 @@ export class GeminiService {
     // 2. Direct REST API request using Firebase Config API Key
     try {
       const apiKey = firebaseConfig.apiKey;
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: explanationPrompt }]
-              }
-            ]
-          })
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: explanationPrompt }]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        let bodyText = '';
+        try {
+          bodyText = JSON.stringify(await response.json());
+        } catch (err) {
+          bodyText = await response.text().catch(() => '<unreadable body>');
         }
-      );
+        console.error('Generative API request failed for explanation', { url, status: response.status, statusText: response.statusText, body: bodyText });
+        throw new Error(`Generative API error ${response.status}`);
+      }
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
