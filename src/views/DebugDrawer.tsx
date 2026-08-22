@@ -115,12 +115,27 @@ export const DebugDrawer: React.FC<DebugDrawerProps> = ({
         </section>
 
         {/* State Raw Metadata */}
-        <section className="bg-dark-950 p-3 rounded-lg border border-slate-800 space-y-1 text-[10px] text-slate-400">
+        <section className="bg-dark-950 p-3 rounded-lg border border-slate-800 space-y-2 text-[10px] text-slate-400">
           <div>Learner ID: {learnerState.learnerId}</div>
           <div>Difficulty State Level: {learnerState.difficultyState}</div>
           <div>Total History Attempts: {learnerState.learningHistory.length}</div>
           <div>Recent Questions: [{learnerState.recentQuestionIds.join(', ')}]</div>
           <div>Last Updated: {learnerState.lastUpdated}</div>
+
+          <button
+            onClick={() => {
+              const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(learnerState, null, 2));
+              const downloadAnchor = document.createElement('a');
+              downloadAnchor.setAttribute("href", dataStr);
+              downloadAnchor.setAttribute("download", `skillpilot_learner_state_${learnerState.learnerId}.json`);
+              document.body.appendChild(downloadAnchor);
+              downloadAnchor.click();
+              downloadAnchor.remove();
+            }}
+            className="w-full mt-2 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono text-[11px] font-semibold transition-colors"
+          >
+            Export Learner State JSON
+          </button>
         </section>
       </div>
     </div>

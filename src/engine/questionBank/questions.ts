@@ -437,6 +437,119 @@ export const QUESTION_BANK: Question[] = [
     explanation: 'PARTITION BY resets the row count sequence for every distinct department_id partition.',
     tags: ['partition_by', 'window_functions', 'implementation'],
     expectedTimeSeconds: 150
+  },
+
+  // --- ADDITIONAL PRACTICE & DIAGNOSTIC EXTENSIONS ---
+  {
+    questionId: 'q_hav_imp_1',
+    conceptId: 'having',
+    skillType: 'implementation',
+    questionType: 'write_query',
+    difficulty: 2,
+    prompt: 'Write a query to find department_id and average salary for all departments where the average salary exceeds $100,000.',
+    schemaContext: SCHEMAS.hr,
+    starterCode: 'SELECT department_id, AVG(salary) FROM employees WHERE department_id IS NOT NULL GROUP BY department_id HAVING ',
+    expectedQueryResult: {
+      columns: ['department_id', 'AVG(salary)'],
+      values: [
+        [1, 102500],
+        [2, 115000]
+      ]
+    },
+    acceptedPatterns: ['HAVING\\s+AVG\\(salary\\)\\s*>\\s*100000'],
+    errorPatterns: ['where_vs_having', 'aggregation_misuse'],
+    hints: ['Use HAVING AVG(salary) > 100000 after GROUP BY.'],
+    explanation: 'Use HAVING to filter aggregated metrics after GROUP BY grouping.',
+    tags: ['having', 'implementation'],
+    expectedTimeSeconds: 90
+  },
+  {
+    questionId: 'q_grp_imp_1',
+    conceptId: 'group_by',
+    skillType: 'implementation',
+    questionType: 'write_query',
+    difficulty: 2,
+    prompt: 'Write a query to count the number of employees in each department_id (excluding NULL departments). Select department_id and emp_count.',
+    schemaContext: SCHEMAS.hr,
+    starterCode: 'SELECT department_id, COUNT(*) as emp_count FROM employees WHERE department_id IS NOT NULL GROUP BY ',
+    expectedQueryResult: {
+      columns: ['department_id', 'emp_count'],
+      values: [
+        [1, 2],
+        [2, 2],
+        [3, 1]
+      ]
+    },
+    acceptedPatterns: ['GROUP\\s+BY\\s+department_id'],
+    errorPatterns: ['missing_group_by'],
+    hints: ['Add GROUP BY department_id at the end.'],
+    explanation: 'Grouping by department_id aggregates the COUNT(*) per department.',
+    tags: ['group_by', 'implementation'],
+    expectedTimeSeconds: 75
+  },
+  {
+    questionId: 'q_cte_imp_1',
+    conceptId: 'ctes',
+    skillType: 'implementation',
+    questionType: 'write_query',
+    difficulty: 3,
+    prompt: 'Write a CTE named dept_totals that calculates department_id and total_sal (SUM of salary) per department. Then select all columns from dept_totals where total_sal > 200000.',
+    schemaContext: SCHEMAS.hr,
+    starterCode: 'WITH dept_totals AS (\n  SELECT department_id, SUM(salary) as total_sal\n  FROM employees\n  WHERE department_id IS NOT NULL\n  GROUP BY department_id\n)\nSELECT * FROM dept_totals WHERE total_sal > 200000;',
+    expectedQueryResult: {
+      columns: ['department_id', 'total_sal'],
+      values: [
+        [1, 205000],
+        [2, 230000]
+      ]
+    },
+    acceptedPatterns: ['WITH\\s+dept_totals\\s+AS\\s*\\(', 'SUM\\(salary\\)'],
+    errorPatterns: ['cte_structure_error', 'cte_reference_error'],
+    hints: ['Structure the WITH statement: WITH dept_totals AS ( SELECT ... ) SELECT ...'],
+    explanation: 'CTEs modularize aggregation logic into named temporary query blocks.',
+    tags: ['cte', 'implementation'],
+    expectedTimeSeconds: 150
+  },
+  {
+    questionId: 'q_jc_diag_2',
+    conceptId: 'join_conditions',
+    skillType: 'diagnosis',
+    questionType: 'spot_error',
+    difficulty: 2,
+    prompt: 'Identify the bug in this query:\n\nSELECT e.name, d.name\nFROM employees e, departments d;\n',
+    schemaContext: SCHEMAS.hr,
+    starterCode: 'SELECT e.name, d.name FROM employees e, departments d;',
+    expectedAnswer: 'opt_missing_on',
+    options: [
+      { id: 'opt_missing_on', text: 'Missing join condition, resulting in an unintended Cartesian cross-product (6x4 = 24 rows)', isCorrect: true },
+      { id: 'opt_syntax_table', text: 'Comma separated tables are forbidden in SQL', isCorrect: false },
+      { id: 'opt_alias_wrong', text: 'Table aliases e and d require AS keyword', isCorrect: false }
+    ],
+    errorPatterns: ['missing_join_condition', 'unexpected_row_multiplication'],
+    hints: ['Listing tables without WHERE or ON predicate creates a cross join.'],
+    explanation: 'Without join conditions, joining N tables creates a Cartesian product pairing every row in A with every row in B.',
+    tags: ['join_conditions', 'diagnosis'],
+    expectedTimeSeconds: 60
+  },
+  {
+    questionId: 'q_sel_reas_2',
+    conceptId: 'select_where',
+    skillType: 'reasoning',
+    questionType: 'predict_output',
+    difficulty: 1,
+    prompt: 'In SQL, what happens when you evaluate: WHERE department_id = NULL vs WHERE department_id IS NULL?',
+    schemaContext: SCHEMAS.hr,
+    expectedAnswer: 'opt_null_cmp',
+    options: [
+      { id: 'opt_null_same', text: 'Both queries return the exact same rows', isCorrect: false },
+      { id: 'opt_null_cmp', text: '"= NULL" yields UNKNOWN and returns 0 rows; "IS NULL" correctly matches NULL records', isCorrect: true },
+      { id: 'opt_null_err', text: 'Both queries cause fatal syntax errors', isCorrect: false }
+    ],
+    errorPatterns: ['null_handling_error'],
+    hints: ['NULL cannot be compared using standard equality = operator.'],
+    explanation: 'In ANSI SQL, comparing anything to NULL using "=" returns UNKNOWN (false in WHERE). You must use "IS NULL".',
+    tags: ['where', 'nulls', 'reasoning'],
+    expectedTimeSeconds: 45
   }
 ];
 
